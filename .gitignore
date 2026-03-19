@@ -1,0 +1,51 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+temp.py
+*.pyc
+*.pyo
+*.pyd
+*.db
+
+# =========================
+# Virtual Environment
+# =========================
+venv/
+.env
+
+# =========================
+# Backend data (ignore heavy/runtime data)
+# =========================
+backend/data/
+backend/faiss_index/
+
+# =========================
+# Ignore everything in backend/app
+# =========================
+backend/app/*
+
+# Allow folder traversal
+!backend/app/
+
+# Allow only main Python files
+!backend/app/*.py
+
+# =========================
+# Logs / temp files
+# =========================
+*.log
+*.tmp
+
+# =========================
+# OS / Editor
+# =========================
+.DS_Store
+.vscode/
+.idea/
+
+# =========================
+# Docker (optional)
+# =========================
+*.env
+docker-compose.override.yml

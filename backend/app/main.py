@@ -15,7 +15,7 @@ load_dotenv()
 
 # We import the runner we just fixed
 from app.agent import runner
-from app.vector_store import process_pdf
+from app.vector_store import process_pdf, get_unique_documents
 
 app = FastAPI()
 APP_NAME, USER_ID = "agentic_rag_assistant", "user_001"
@@ -47,6 +47,15 @@ async def upload(file: UploadFile = File(...)):
     
     num_chunks = process_pdf(file_path, file.filename)
     return {"message": "Success", "chunks": num_chunks}
+
+@app.get("/documents")
+async def list_documents():
+    try:
+        docs = get_unique_documents()
+        # Return a list of objects so it's easier to expand later (e.g., adding upload date)
+        return [{"name": doc} for doc in docs]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/chat")
 async def chat(request: ChatRequest):

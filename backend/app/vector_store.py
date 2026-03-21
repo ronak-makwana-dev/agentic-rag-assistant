@@ -104,3 +104,24 @@ def search_docs(query: str, k: int = 10):
     # Retrieve more documents than we actually need for the final answer
     docs = vector_db.similarity_search(query, k=k)
     return [{"content": d.page_content, "source": d.metadata.get("source")} for d in docs]
+
+def get_unique_documents():
+    global vector_db
+    if vector_db is None:
+        vector_db = load_local_vector_db()
+    
+    if vector_db is None:
+        return []
+
+    # FAISS stores documents in a dictionary-like docstore
+    # We iterate through them to find all unique 'source' metadata tags
+    unique_sources = set()
+    
+    # docstore is a private attribute in LangChain's FAISS wrapper
+    # we can access the values which are the Document objects
+    for doc in vector_db.docstore._dict.values():
+        source = doc.metadata.get("source")
+        if source:
+            unique_sources.add(source)
+            
+    return sorted(list(unique_sources))

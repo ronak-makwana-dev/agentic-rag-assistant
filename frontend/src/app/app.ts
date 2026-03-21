@@ -26,11 +26,14 @@ export class App {
   activeSources = signal<SourceSnippet[]>([]);
   isThinking = signal(false);
   isUploading = signal(false);
+  uploadedDocs = signal<{ name: string }[]>([]);
 
   private sessionId = crypto.randomUUID();
   private apiUrl = 'http://localhost:8000';
 
   constructor() {
+    this.loadDocs();
+
     // Effect to handle auto-scrolling when messages change
     effect(() => {
       this.messages();
@@ -57,13 +60,21 @@ export class App {
         method: 'POST',
         body: formData,
       });
-      if (response.ok) alert('Document Indexed Successfully');
+      if (response.ok) {
+        this.loadDocs();
+        alert('Document Indexed Successfully');
+      }
     } catch (err) {
       console.error('Upload failed', err);
     } finally {
       this.isUploading.set(false);
       element.value = '';
     }
+  }
+
+  async loadDocs() {
+    const docs = await this.ragService.getDocuments();
+    this.uploadedDocs.set(docs);
   }
 
   async sendMessage() {
@@ -125,19 +136,41 @@ export class App {
                 });
               } else if (currentEvent === 'sources') {
                 try {
-                  const parsedData = JSON.parse(rawData);
+                  // 1. Double parse check: your backend wraps JSON in a string sometimes
+                  let data = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
 
-                  const incomingResults = parsedData.results || parsedData.sources || [];
+                  // 2. Extract the array based on your EventStream examples
+                  let finalSnippets: any[] = [];
 
-                  const formattedSources: SourceSnippet[] = incomingResults.map((item: any) => ({
+                  if (data.results && Array.isArray(data.results)) {
+                    // Handles the {"results": [...]} format
+                    finalSnippets = data.results;
+                  } else if (Array.isArray(data)) {
+                    // Handles the raw array format [...]
+                    finalSnippets = data;
+                  } else if (data.raw_context) {
+                    // Handles the {"raw_context": "..."} string format
+                    // We convert the string to a single snippet object for the UI
+                    finalSnippets = [
+                      {
+                        source: data.raw_context.match(/\[(.*?)\]/)?.[1] || 'test.pdf',
+                        content: data.raw_context.replace(/\[.*?\]:\s?/, ''),
+                        relevance_score: 1.0,
+                      },
+                    ];
+                  }
+
+                  // 3. Map to your SourceSnippet interface
+                  const formattedSources: SourceSnippet[] = finalSnippets.map((item: any) => ({
                     source: item.source || 'Unknown Document',
                     content: item.content || '',
                     relevance_score: item.relevance_score || item.score || 0,
                   }));
 
+                  // 4. Update the signal
                   this.activeSources.set(formattedSources);
                 } catch (e) {
-                  console.error('JSON Parse Error in Sources:', e);
+                  console.error('Source Parsing Error:', e);
                 }
               } else if (currentEvent === 'status') {
                 console.log('Agent Status:', parsedData.status || parsedData);

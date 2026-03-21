@@ -8,6 +8,23 @@
       </button>
     </div>
 
+    <div class="indexed-docs-section">
+      <p class="section-label">INDEXED DOCUMENTS</p>
+      <div class="doc-list">
+        @if (uploadedDocs().length === 0) {
+          <div class="empty-docs">No documents indexed yet.</div>
+        }
+        @for (doc of uploadedDocs(); track doc.name) {
+          <div class="doc-item">
+            <span class="doc-icon">📄</span>
+            <span class="doc-name">{{ doc.name }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <hr class="sidebar-divider">
+
     <div class="sources-panel">
       <p class="section-label">EVIDENCE FOUND</p>
       @if (activeSources().length === 0) {

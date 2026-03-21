@@ -13,26 +13,32 @@ export class RagService {
   async uploadFile(file: File): Promise<any> {
     const formData = new FormData();
     formData.append('file', file);
-    
+
     const response = await fetch(`${this.apiUrl}/documents/upload`, {
       method: 'POST',
-      body: formData
+      body: formData,
     });
-    
+
     if (!response.ok) throw new Error('Upload failed');
     return response.json();
   }
 
+  async getDocuments(): Promise<any[]> {
+    const response = await fetch(`${this.apiUrl}/documents`);
+    if (!response.ok) throw new Error('Failed to fetch documents');
+    return response.json();
+  }
+
   async chatStream(
-    message: string, 
-    sessionId: string, 
-    onUpdate: (token: string) => void, 
-    onSources: (sources: SourceSnippet[]) => void
+    message: string,
+    sessionId: string,
+    onUpdate: (token: string) => void,
+    onSources: (sources: SourceSnippet[]) => void,
   ): Promise<void> {
     const response = await fetch(`${this.apiUrl}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, session_id: sessionId })
+      body: JSON.stringify({ message, session_id: sessionId }),
     });
 
     if (!response.body) return;
@@ -47,7 +53,7 @@ export class RagService {
 
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
-      
+
       buffer = lines.pop() || '';
 
       for (const line of lines) {
@@ -59,12 +65,12 @@ export class RagService {
 
         try {
           const parsed = JSON.parse(jsonStr);
-          
+
           // 1. Handle Sources Metadata
           if (parsed.sources && Array.isArray(parsed.sources)) {
             onSources(parsed.sources);
-          } 
-          
+          }
+
           // 2. Handle Text Tokens
           if (parsed.text) {
             onUpdate(parsed.text);
@@ -75,7 +81,7 @@ export class RagService {
             console.log('Stream finished');
           }
         } catch (e) {
-          console.warn("Partial JSON encountered, waiting for next chunk...");
+          console.warn('Partial JSON encountered, waiting for next chunk...');
         }
       }
     }

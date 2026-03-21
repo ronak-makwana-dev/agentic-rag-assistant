@@ -18,7 +18,7 @@ venv/
 # Backend data (ignore heavy/runtime data)
 # =========================
 backend/data/
-backend/faiss_index/
+backend/faiss_index*/
 
 # =========================
 # Ignore everything in backend/app

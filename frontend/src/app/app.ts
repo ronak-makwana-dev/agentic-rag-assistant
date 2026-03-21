@@ -2,6 +2,7 @@ import { Component, signal, viewChild, ElementRef, effect, inject } from '@angul
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RagService, SourceSnippet } from './services/rag.service';
+import { MarkdownPipe } from './pipes/markdown.pipe';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -11,9 +12,9 @@ interface ChatMessage {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MarkdownPipe],
   templateUrl: './app.html',
-  styleUrl: './app.scss'
+  styleUrl: './app.scss',
 })
 export class App {
   private ragService = inject(RagService) as any;
@@ -25,7 +26,7 @@ export class App {
   activeSources = signal<SourceSnippet[]>([]);
   isThinking = signal(false);
   isUploading = signal(false);
-  
+
   private sessionId = crypto.randomUUID();
   private apiUrl = 'http://localhost:8000';
 
@@ -52,9 +53,9 @@ export class App {
 
     this.isUploading.set(true);
     try {
-      const response = await fetch(`${this.apiUrl}/documents/upload`, { 
-        method: 'POST', 
-        body: formData 
+      const response = await fetch(`${this.apiUrl}/documents/upload`, {
+        method: 'POST',
+        body: formData,
       });
       if (response.ok) alert('Document Indexed Successfully');
     } catch (err) {
@@ -98,7 +99,7 @@ export class App {
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
-        buffer = lines.pop() || ''; 
+        buffer = lines.pop() || '';
 
         for (const line of lines) {
           const cleanLine = line.trim();
@@ -111,32 +112,45 @@ export class App {
 
           if (cleanLine.startsWith('data: ')) {
             const rawData = cleanLine.replace('data: ', '').trim();
-            
-            if (currentEvent === 'message') {
-              this.isThinking.set(false);
-              this.messages.update(m => {
-                const updated = [...m];
-                // Check if rawData is JSON or raw string
+
+            try {
+              const parsedData = JSON.parse(rawData);
+
+              if (currentEvent === 'message') {
+                this.isThinking.set(false);
+                this.messages.update((m) => {
+                  const updated = [...m];
+                  updated[lastIdx].content += parsedData.text || '';
+                  return updated;
+                });
+              } else if (currentEvent === 'sources') {
                 try {
-                   const p = JSON.parse(rawData);
-                   updated[lastIdx].content += (p.text || p);
-                } catch {
-                   updated[lastIdx].content += rawData;
+                  const parsedData = JSON.parse(rawData);
+
+                  const incomingResults = parsedData.results || parsedData.sources || [];
+
+                  const formattedSources: SourceSnippet[] = incomingResults.map((item: any) => ({
+                    source: item.source || 'Unknown Document',
+                    content: item.content || '',
+                    relevance_score: item.relevance_score || item.score || 0,
+                  }));
+
+                  this.activeSources.set(formattedSources);
+                } catch (e) {
+                  console.error('JSON Parse Error in Sources:', e);
                 }
-                return updated;
-              });
-            } 
-            else if (currentEvent === 'sources') {
-              try {
-                const parsed = JSON.parse(rawData);
-                this.activeSources.set(parsed);
-              } catch (e) {
-                console.error("Source parse error", e);
+              } else if (currentEvent === 'status') {
+                console.log('Agent Status:', parsedData.status || parsedData);
               }
-            }
-            else if (currentEvent === 'status') {
-              console.log("Status update:", rawData);
-              // Keeps 'isThinking' true until 'message' event starts
+            } catch (e) {
+              // If it's not JSON, handle as a fallback string
+              if (currentEvent === 'message') {
+                this.messages.update((m) => {
+                  const updated = [...m];
+                  updated[lastIdx].content += rawData;
+                  return updated;
+                });
+              }
             }
           }
         }

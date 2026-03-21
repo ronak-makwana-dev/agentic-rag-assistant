@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 export interface SourceSnippet {
   source: string;
   content: string;
-  score?: number;
+  relevance_score?: number;
 }
 
 @Injectable({ providedIn: 'root' })

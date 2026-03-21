@@ -1,20 +1,23 @@
-FROM python:3.12-slim
+FROM python:3.11-slim
 
-# Install system tools needed for building C++ extensions (ChromaDB requirement)
+# Install system dependencies for FAISS and FlashRank
 RUN apt-get update && apt-get install -y \
     build-essential \
-    python3-dev \
-    cmake \
+    libsqlite3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
+# Copy requirements and install
 COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Upgrade pip and install
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+# Create directories for persistence
+RUN mkdir -p /app/data /app/faiss_index
 
 COPY . .
+
+# Expose FastAPI port
+EXPOSE 8000
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

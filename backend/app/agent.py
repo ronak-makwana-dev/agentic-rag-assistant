@@ -44,11 +44,14 @@ def summarize_context(reranked_data: str):
     if not results:
         return "No relevant context found."
     context_text = "\n".join([f"[{r['source']}]: {r['content']}" for r in results])
-    # Returns a condensed version for the agent to process
-    print(context_text)
-    print(f"summarize_context: {context_text}")
-    return context_text
-
+    source_list = list(set([r['source'] for r in results]))
+    
+    # NEW: Return a JSON string containing BOTH pieces of data
+    return json.dumps({
+        "context": context_text,
+        "active_sources": source_list
+    })
+    
 # --- Tool 4: Generate ---
 def generate_answer(query: str, summarized_context: str):
     """Generates the final grounded response based on the context."""

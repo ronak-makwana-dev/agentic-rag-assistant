@@ -28,21 +28,21 @@
     <div class="sources-panel">
       <p class="section-label">EVIDENCE FOUND</p>
       @if (activeSources().length === 0) {
-      <div class="empty-sources">
+        <div class="empty-sources">
         {{ isThinking() ? 'Searching documents...' : 'No snippets yet.' }}
-      </div>
+        </div>
       }
-      @for (source of activeSources(); track $index) {
-      <div class="source-card">
-        <span class="file-tag">📄 {{ source.source }}</span>
-        <!-- <p class="snippet">"{{ source.content }}"</p> -->
-        <div [innerHTML]="source.content | markdown | async"></div>
-
-        @if (source.relevance_score) {
-        <div class="score-label">Match: {{ source.relevance_score | percent }}</div>
-        <div class="score-bar" [style.width.%]="source.relevance_score * 100"></div>
-        }
-      </div>
+      @for (source of activeSources(); track (source.source + $index)) {
+        <div class="source-card animate-fade-in">
+          <span class="file-tag">📄 {{ source.source || source }}</span>
+          @if (source.content) {
+            <div class="snippet-text" [innerHTML]="source.content | markdown | async"></div>
+          }
+          @if (source.relevance_score) {
+            <div class="score-label">Match: {{ source.relevance_score | percent }}</div>
+            <div class="score-bar" [style.width.%]="source.relevance_score * 100"></div>
+          }
+        </div>
       }
     </div>
   </aside>

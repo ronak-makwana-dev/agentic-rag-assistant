@@ -84,7 +84,6 @@ export class App {
     // Reset UI state for new message
     this.userInput.set('');
     this.isThinking.set(true);
-    this.activeSources.set([]);
 
     // Add User message and placeholder for Assistant
     this.messages.update((m) => [...m, { role: 'user', content: query }]);
@@ -135,43 +134,9 @@ export class App {
                   return updated;
                 });
               } else if (currentEvent === 'sources') {
-                try {
-                  // 1. Double parse check: your backend wraps JSON in a string sometimes
-                  let data = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
-
-                  // 2. Extract the array based on your EventStream examples
-                  let finalSnippets: any[] = [];
-
-                  if (data.results && Array.isArray(data.results)) {
-                    // Handles the {"results": [...]} format
-                    finalSnippets = data.results;
-                  } else if (Array.isArray(data)) {
-                    // Handles the raw array format [...]
-                    finalSnippets = data;
-                  } else if (data.raw_context) {
-                    // Handles the {"raw_context": "..."} string format
-                    // We convert the string to a single snippet object for the UI
-                    finalSnippets = [
-                      {
-                        source: data.raw_context.match(/\[(.*?)\]/)?.[1] || 'test.pdf',
-                        content: data.raw_context.replace(/\[.*?\]:\s?/, ''),
-                        relevance_score: 1.0,
-                      },
-                    ];
-                  }
-
-                  // 3. Map to your SourceSnippet interface
-                  const formattedSources: SourceSnippet[] = finalSnippets.map((item: any) => ({
-                    source: item.source || 'Unknown Document',
-                    content: item.content || '',
-                    relevance_score: item.relevance_score || item.score || 0,
-                  }));
-
-                  // 4. Update the signal
-                  this.activeSources.set(formattedSources);
-                } catch (e) {
-                  console.error('Source Parsing Error:', e);
-                }
+                const sources = parsedData.sources || parsedData.results || [];
+                console.log(sources);
+                if (sources.length > 0) this.activeSources.set(sources);
               } else if (currentEvent === 'status') {
                 console.log('Agent Status:', parsedData.status || parsedData);
               }
